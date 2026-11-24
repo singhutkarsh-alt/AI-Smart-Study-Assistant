@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Study & Viva Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Smart Study & Viva Assistant</h1>
+            <p>Paste your lecture notes or syllabus topic below to automatically generate a crisp summary, key terms, and Viva Q&A.</p>
+        </header>
+
+        <main>
+            <div class="input-card">
+                <label for="notesInput"><strong>Enter Study Notes / Topic Text:</strong></label>
+                <textarea id="notesInput" rows="7" placeholder="Paste any topic notes here (e.g., Notion, Operating Systems, DBMS, DevOps)..."></textarea>
+                <div class="btn-row">
+                    <button onclick="loadSample()" class="secondary-btn">Load Sample Topic</button>
+                    <button onclick="analyzeNotes()" class="primary-btn">Generate Summary & Viva Q&A</button>
+                </div>
+                <p id="errorMsg" class="error"></p>
+            </div>
+
+            <div id="resultsSection" class="results hidden">
+                <div class="card">
+                    <h2>1. AI Extractive Summary</h2>
+                    <p id="summaryOutput"></p>
+                </div>
+
+                <div class="card">
+                    <h2>2. Key Concepts Detected</h2>
+                    <div id="keywordsOutput" class="tags"></div>
+                </div>
+
+                <div class="card">
+                    <h2>3. Auto-Generated Viva Questions & Answers</h2>
+                    <div id="vivaOutput"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Minor Project | Built with Python, Flask & NLP (TF-IDF Algorithm)</p>
+        </footer>
+    </div>
+
+    <script>
+        function loadSample() {
+            document.getElementById("notesInput").value =
+                "Notion is an all-in-one workspace used for note-taking, task tracking, and project management. " +
+                "It organizes information using modular blocks such as text, headings, to-do lists, and databases. " +
+                "Students and software teams use Kanban boards and calendars in Notion to track deadlines efficiently. " +
+                "Real-time collaboration allows multiple team members to edit pages, leave comments, and share workspaces using permissions. " +
+                "Templates and keyboard shortcuts help users set up structured pages quickly and boost daily productivity.";
+        }
+
+        async function analyzeNotes() {
+            const notes = document.getElementById("notesInput").value;
+            const errorMsg = document.getElementById("errorMsg");
+            const resultsSection = document.getElementById("resultsSection");
+            errorMsg.textContent = "";
+
+            const response = await fetch("/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ notes })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                errorMsg.textContent = data.error || "Something went wrong.";
+                resultsSection.classList.add("hidden");
+                return;
+            }
+
+            document.getElementById("summaryOutput").textContent = data.summary;
+
+            const kwContainer = document.getElementById("keywordsOutput");
+            kwContainer.innerHTML = "";
+            data.keywords.forEach(kw => {
+                const span = document.createElement("span");
+                span.className = "tag";
+                span.textContent = kw;
+                kwContainer.appendChild(span);
+            });
+
+            const vivaContainer = document.getElementById("vivaOutput");
+            vivaContainer.innerHTML = "";
+            data.viva_qa.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.className = "qa-item";
+                div.innerHTML = `<strong>Q${index + 1}: ${item.question}</strong><p><strong>Ans:</strong> ${item.answer}</p>`;
+                vivaContainer.appendChild(div);
+            });
+
+            resultsSection.classList.remove("hidden");
+        }
+    </script>
+</body>
+</html>
